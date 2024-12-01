@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 import logging
 import json
@@ -22,6 +23,16 @@ class Book:
         return (f'{self.__id:>5}: Книга \'{self.__title}\' автора \'{self.__author}\''
                 f' {self.__year} года: {self.__status}')
 
+    def __eq__(self, other):
+        if not isinstance(other, Book):
+            return False
+        return (self.__id == other.__id and self.__title == other.__title and
+                self.__author == other.__author and self.__year == other.__year)
+
+    @property
+    def id(self) -> int:
+        return self.__id
+
     @property
     def title(self) -> str:
         return self.__title
@@ -35,8 +46,8 @@ class Book:
         return self.__year
 
     @property
-    def id(self) -> int:
-        return self.__id
+    def status(self) -> str:
+        return self.__status
 
     def change_standard_status(self) -> None:
         """Меняет статус книги с 'в наличии' на 'выдана' и обратно"""
@@ -103,7 +114,8 @@ class Library:
         return self.__stored_books
 
     @staticmethod
-    def __ask_id_input() -> int:
+    def _ask_id_input() -> int:
+        """Спросит у пользователя и вернёт id"""
         not_done = True
         while not_done:
             id_ = input('Введите номер книги\n>>> ')
@@ -119,7 +131,7 @@ class Library:
         # noinspection PyUnboundLocalVariable
         return id_
 
-    def __find_book_by_id(self, id_: int) -> Book | None:
+    def _find_book_by_id(self, id_: int) -> Book | None:
         """Вернёт книгу с введённым id"""
         if id_ in self.__stored_ids:
             book = self.__stored_books[self.__stored_ids.index(id_)]
@@ -180,8 +192,8 @@ class Library:
     def delete_book(self) -> None:
         """Пользовательская функция. Удаляет введённую книгу из библиотеки"""
         print('[INFO] Удаление книги:')
-        id_ = self.__ask_id_input()
-        deleted_book = self.__find_book_by_id(id_)
+        id_ = self._ask_id_input()
+        deleted_book = self._find_book_by_id(id_)
         if deleted_book is not None:
             deleted_book = self.__stored_books.pop(self.__stored_ids.index(id_))
             self.__stored_ids.pop(self.__stored_ids.index(id_))
@@ -189,8 +201,8 @@ class Library:
 
     def find_book(self, title: str = None, author: str = None, year: int = None) -> None:
         """Пользовательская функция. Поиск введённой книги в библиотеке"""
-        def __print_books_from_set(books_set: set[tuple[int, Book]], find_message: str, not_find_message: str,
-                                   something_found: bool) -> None:
+        def _print_books_from_set(books_set: set[tuple[int, Book]], find_message: str, not_find_message: str,
+                                  something_found: bool) -> None:
             """Функция оформления. Выведет результат конкретного поиска"""
             if books_set is not None:
                 if bool(books_set):
@@ -245,23 +257,23 @@ class Library:
         yms = yms - found
 
         is_something_found = bool(found)
-        __print_books_from_set(full_match, 'Полное совпадение:',
-                               'Нет полных совпадений', is_something_found)
-        __print_books_from_set(title_author_matches, 'Совпадения заголовка и автора:',
-                               'Нет совпадений заголовка и автора', is_something_found)
-        __print_books_from_set(title_year_match, 'Совпадения заголовка и года:',
-                               'Нет совпадений заголовка и года', is_something_found)
-        __print_books_from_set(author_year_match, 'Совпадения автора и года:',
-                               'Нет совпадений автора и года', is_something_found)
+        _print_books_from_set(full_match, 'Полное совпадение:',
+                              'Нет полных совпадений', is_something_found)
+        _print_books_from_set(title_author_matches, 'Совпадения заголовка и автора:',
+                              'Нет совпадений заголовка и автора', is_something_found)
+        _print_books_from_set(title_year_match, 'Совпадения заголовка и года:',
+                              'Нет совпадений заголовка и года', is_something_found)
+        _print_books_from_set(author_year_match, 'Совпадения автора и года:',
+                              'Нет совпадений автора и года', is_something_found)
         if title:
-            __print_books_from_set(tms, 'Совпадения заголовка:',
-                                   'Нет совпадений заголовка', is_something_found)
+            _print_books_from_set(tms, 'Совпадения заголовка:',
+                                  'Нет совпадений заголовка', is_something_found)
         if author:
-            __print_books_from_set(ams, 'Совпадения автора:',
-                                   'Нет совпадений автора', is_something_found)
+            _print_books_from_set(ams, 'Совпадения автора:',
+                                  'Нет совпадений автора', is_something_found)
         if year:
-            __print_books_from_set(yms, 'Совпадения года:',
-                                   'Нет совпадений года', is_something_found)
+            _print_books_from_set(yms, 'Совпадения года:',
+                                  'Нет совпадений года', is_something_found)
 
     def view_all_books(self) -> None:
         """Пользовательская функция. Выведет оформленный список книг в библиотеке"""
@@ -275,8 +287,8 @@ class Library:
     def change_book_status(self, want_to_print_it_yourself: bool = False) -> None:
         """Пользовательская функция. Изменит статус книги двумя способами"""
         print('[INFO] Изменение статуса книги:')
-        id_ = self.__ask_id_input()
-        book = self.__find_book_by_id(id_)
+        id_ = self._ask_id_input()
+        book = self._find_book_by_id(id_)
         if book is not None:
             if want_to_print_it_yourself:
                 book.set_special_status()
@@ -311,10 +323,10 @@ class JsonConverter:
     class MyEncoder:
         """Класс для создания Json из пользовательского типа вручную"""
         @classmethod
-        def default(cls, obj):
+        def default(cls, obj: tuple[Library, ...] | Library) -> dict:
             """Создаст json из tuple[Library, ...]"""
             if isinstance(obj, Library):
-                logger.debug('Books')
+                logger.debug('Libraries')
                 books = {}
                 for (book, id_) in zip(obj.stored_books, obj.stored_ids):
                     books.update({book.__repr__(): id_})
@@ -325,7 +337,7 @@ class JsonConverter:
                 for library in obj:
                     libraries_.update(cls.default(library))
                 return libraries_
-            return cls.default(obj)
+            # return cls.default(obj)
 
     @staticmethod
     def open_json(path: str) -> dict:
@@ -339,7 +351,7 @@ class JsonConverter:
             print(f'[ERROR] Не найден файл {path}')
 
     @classmethod
-    def save_json(cls, path: str) -> None:
+    def save_json(cls, libraries: tuple[Library, ...], path: str) -> None:
         """Сохранит данные в json"""
         with open(path, 'w') as file:
             json.dump(cls.MyEncoder.default(libraries), file, indent=2, ensure_ascii=False)
@@ -364,33 +376,38 @@ class JsonConverter:
 
     @staticmethod
     def add_books_from_dict(books_dict: dict) -> list:
-        """Создаст объекты Book из {Book.__repr__: int, ...}"""
+        """Создаст объекты Book из {Book.__repr__(): int, ...}"""
         books_list = []
         for current_book, book_id in books_dict.items():
             title, author, str_year, status = JsonConverter.split_str(current_book)
-            books_list.append(Book(book_id, title, author, int(str_year), status))
+            books_list.append(Book(int(book_id), title, author, int(str_year), status))
         return books_list
 
 
 class Client:
     """Класс для взаимодействия с пользователем"""
+    __libraries: tuple[Library, ...] = ()
+
+    @property
+    def libraries(self):
+        return __libraries
+
     @classmethod
     def start(cls, data_json_path: str, save_json_path: str):
         """Mainloop, Функция запуска программы, управления меню"""
-        global libraries
         print('[INFO] Система управления библиотекой запущена')
         libraries_json = JsonConverter.open_json(data_json_path)
         if libraries_json:
             for library_obj_name, books_dict in libraries_json.items():
                 library: Library = Library(JsonConverter.split_str(library_obj_name)[0])
-                libraries += (library,)
+                cls.__libraries += (library,)
                 library.load(JsonConverter.add_books_from_dict(books_dict))
             print(f'[INFO] Загружены данные из файла {data_json_path}')
             cls.print_libraries()
         else:
             print('[INFO] В системе не содержится ни одной библиотеки')
-            libraries += (cls.create_library(),)
-        current_library: Library = libraries[0]
+            cls.__libraries += (cls.create_library(),)
+        current_library: Library = cls.__libraries[0]
         previous_choice = None
         work = True
         while work:
@@ -447,20 +464,20 @@ class Client:
                 case 7:  # Сменить библиотеку
                     current_library = cls.change_library()
                 case 8:  # Создать библиотеку
-                    libraries += (cls.create_library(),)
-                    current_library = libraries[-1]
+                    cls.__libraries += (cls.create_library(),)
+                    current_library = cls.__libraries[-1]
                 case 9:  # Удалить библиотеку
                     deleted_library = cls.delete_library()
                     if deleted_library is current_library:
-                        if len(libraries) != 0:
-                            current_library = libraries[0]
+                        if len(cls.__libraries) != 0:
+                            current_library = cls.__libraries[0]
                         else:
                             print('[WARNING] В системе не осталось библиотек')
-                            libraries += (cls.create_library(),)
-                            current_library = libraries[-1]
+                            cls.__libraries += (cls.create_library(),)
+                            current_library = cls.__libraries[-1]
                 case 10:  # Завершить работу
                     print('[INFO] Завершение работы')
-                    JsonConverter.save_json(save_json_path)
+                    JsonConverter.save_json(cls.__libraries, save_json_path)
                     work = False
                     print('[INFO] Программа остановлена')
                 case 11:  # Отстань, я - Программист
@@ -498,12 +515,12 @@ class Client:
         # noinspection PyUnboundLocalVariable
         return user_input_title, user_input_author, year
 
-    @staticmethod
-    def print_libraries() -> None:
+    @classmethod
+    def print_libraries(cls) -> None:
         """Пользовательская функция. Выведет список библиотек"""
         print('[INFO] В системе содержатся следующие библиотеки:')
         library_number = 1
-        for library in libraries:
+        for library in cls.__libraries:
             print(f'{library_number:>5} ' + library.__str__())
             library_number += 1
 
@@ -520,15 +537,15 @@ class Client:
                 if type(user_input_number) is float:
                     raise ValueError
                 number = int(user_input_number)
-                if (number < 1) or (number > len(libraries)):
+                if (number < 1) or (number > len(cls.__libraries)):
                     raise ValueError
                 not_done = False
             except ValueError:
-                print(f'[WARNING] Номер должен быть целым числом в диапазоне от 1 до {len(libraries)}.'
+                print(f'[WARNING] Номер должен быть целым числом в диапазоне от 1 до {len(cls.__libraries)}.'
                       f' Повторите попытку.')
                 continue
         # noinspection PyUnboundLocalVariable
-        return libraries[number-1]
+        return cls.__libraries[number - 1]
 
     @staticmethod
     def create_library() -> Library:
@@ -543,7 +560,6 @@ class Client:
     @classmethod
     def delete_library(cls) -> Library | None:
         """Пользовательская функция. Удалит библиотеку"""
-        global libraries
         print('[INFO] Выбор библиотеки:')
         cls.print_libraries()
         not_done = True
@@ -554,24 +570,24 @@ class Client:
                 if type(user_input_number) is float:
                     raise ValueError
                 number = int(user_input_number)
-                if (number < 1) or (number > len(libraries)):
+                if (number < 1) or (number > len(cls.__libraries)):
                     raise ValueError
                 not_done = False
             except ValueError:
-                print(f'[WARNING] Номер должен быть целым числом в диапазоне от 1 до {len(libraries)}.'
+                print(f'[WARNING] Номер должен быть целым числом в диапазоне от 1 до {len(cls.__libraries)}.'
                       f' Повторите попытку.')
                 continue
         # noinspection PyUnboundLocalVariable
         number -= 1
-        print(f'[WARNING] Вы удаляете библиотеку: \'{libraries[number].name}\'\n'
+        print(f'[WARNING] Вы удаляете библиотеку: \'{cls.__libraries[number].name}\'\n'
               f'Подтвердить - пустой ввод/Y/y\n'
               f'Отменить - всё остальное')
         answer = input('>>> ')
         logger.debug('Введено: %s' % answer)
         if answer in ('', 'Y', 'y'):
-            libraries_list = list(libraries)
+            libraries_list = list(cls.__libraries)
             deleted_library = libraries_list.pop(number)
-            libraries = tuple(libraries_list)
+            cls.__libraries = tuple(libraries_list)
             print(f'[INFO] {deleted_library.__str__()} удалена')
             return deleted_library
         else:
@@ -597,7 +613,6 @@ def create_logger(level: int) -> logging.Logger:
     return logger_
 
 
+logger = create_logger(logging.ERROR)
 if __name__ == '__main__':
-    logger = create_logger(logging.ERROR)
-    libraries: tuple[Library, ...] = ()
     Client.start('libraries.json', 'libraries.json')
