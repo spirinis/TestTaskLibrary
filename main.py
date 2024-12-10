@@ -6,6 +6,8 @@ import json
 
 class Book:
     """Класс работы с типом данных книга"""
+    STANDARD_STATUSES = ('в наличии', 'выдана')
+    
     def __init__(self, id_: int, title: str, author: str, year: int, status: str | None = None) -> None:
         self.__id: int = id_
         self.__title: str = title
@@ -14,7 +16,7 @@ class Book:
         if status:
             self.__status: str = status
         else:
-            self.__status: str = 'в наличии'
+            self.__status: str = self.STANDARD_STATUSES[0]
 
     def __repr__(self) -> str:
         return f'Book({self.__title}, {self.__author}, {self.__year}, {self.__status})'
@@ -28,6 +30,9 @@ class Book:
             return False
         return (self.__id == other.__id and self.__title == other.__title and
                 self.__author == other.__author and self.__year == other.__year)
+
+    def __hash__(self):
+        return hash(self.__str__())
 
     @property
     def id(self) -> int:
@@ -51,11 +56,11 @@ class Book:
 
     def change_standard_status(self) -> None:
         """Меняет статус книги с 'в наличии' на 'выдана' и обратно"""
-        if self.__status == 'в наличии':
-            self.__status = 'выдана'
-            print('[INFO] Статус изменён:')
-        elif self.__status == 'выдана':
-            self.__status = 'в наличии'
+        if self.__status in self.STANDARD_STATUSES:
+            if self.__status == self.STANDARD_STATUSES[0]:
+                self.__status = self.STANDARD_STATUSES[1]
+            elif self.__status == self.STANDARD_STATUSES[1]:
+                self.__status = self.STANDARD_STATUSES[0]
             print('[INFO] Статус изменён:')
         else:
             print('[WARNING] У книги не стандартный статус. Операция не произведена')
@@ -65,7 +70,7 @@ class Book:
         """Меняет статус книги на введённый, переспрашивает, если ввели не статус 'в наличии' или 'выдана'"""
         status = input('Введите новый статус\n>>> ')
         logger.debug('Введено: %s' % status)
-        if status != 'в наличии' and status != 'выдана':
+        if status not in self.STANDARD_STATUSES:
             print(f'[WARNING] Вы устанавливаете не стандартный статус: {status}\n'
                   f'Подтвердить - пустой ввод/Y/y\n'
                   f'Отменить - всё остальное')
@@ -91,12 +96,13 @@ class Library:
 
     def __str__(self) -> str:
         count = len(self.__stored_ids)
+        output_str = f'Библиотека {self.__name}, содержащая {count}'
         if count == 1:
-            return f'Библиотека {self.__name}, содержащая {count} книгу'
+            return f'{output_str} книгу'
         elif count in (2, 3, 4):
-            return f'Библиотека {self.__name}, содержащая {count} книги'
+            return f'{output_str} книги'
         else:
-            return f'Библиотека {self.__name}, содержащая {count} книг'
+            return f'{output_str} книг'
 
     def __repr__(self) -> str:
         return f'Library({self.__name})'
@@ -164,7 +170,7 @@ class Library:
                 if len(split_user_input) not in (3, 4):
                     split_user_input = user_input.split(',')
                 title, author, year, *some = split_user_input
-                logger.debug('split на: %s %s %s и это вот: %s' % (title, author, year, str(*some)))
+                logger.debug('split на: %s %s %s и отброшено: %s' % (title, author, year, str(*some)))
                 # обработка ввода с разделителем в конце
                 if some not in ([], ['']):
                     raise ValueError
@@ -187,7 +193,7 @@ class Library:
         created_book = Book(id_, title, author, year)
         self.__stored_books.append(created_book)
         self.__stored_ids.append(id_)
-        print(f'\'[INFO] {created_book.__str__()}\' добавлена.')
+        print(f'[INFO] {created_book.__str__()} добавлена.')
 
     def delete_book(self) -> None:
         """Пользовательская функция. Удаляет введённую книгу из библиотеки"""
@@ -197,7 +203,7 @@ class Library:
         if deleted_book is not None:
             deleted_book = self.__stored_books.pop(self.__stored_ids.index(id_))
             self.__stored_ids.pop(self.__stored_ids.index(id_))
-            print(f'[INFO] \'{deleted_book.__str__()}\' удалена')
+            print(f'[INFO] {deleted_book.__str__()} удалена')
 
     def find_book(self, title: str = None, author: str = None, year: int = None) -> None:
         """Пользовательская функция. Поиск введённой книги в библиотеке"""
@@ -298,6 +304,8 @@ class Library:
 
 class JsonConverter:
     """Класс для работы с Json"""
+    JSON_IDENT = 2
+    
     class Encoder(json.JSONEncoder):
         """Класс для модификации создания Json"""
         # По сути так нужно делать, но я не понял как переопределить обработку кортежей для себя
@@ -347,20 +355,21 @@ class JsonConverter:
                 data = json.load(file)
             return data
         except FileNotFoundError:
-            logger.error(f'Не найден файл {path}')
-            print(f'[ERROR] Не найден файл {path}')
+            output_error = f'Не найден файл {path}'
+            logger.error(output_error)
+            print(f'[ERROR] {output_error}')
 
     @classmethod
     def save_json(cls, libraries: tuple[Library, ...], path: str) -> None:
         """Сохранит данные в json"""
         with open(path, 'w') as file:
-            json.dump(cls.MyEncoder.default(libraries), file, indent=2, ensure_ascii=False)
+            json.dump(cls.MyEncoder.default(libraries), file, indent=cls.JSON_IDENT, ensure_ascii=False)
         print(f'[INFO] Данные сохранены в файл \'{path}\'')
 
-    @staticmethod
-    def print_json(data: dict) -> None:
+    @classmethod
+    def print_json(cls, data: dict) -> None:
         """Напечатает json читаемо"""
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        print(json.dumps(data, indent=cls.JSON_IDENT, ensure_ascii=False))
 
     @staticmethod
     def split_str(obj_str: str) -> tuple[str, ...]:
@@ -395,6 +404,10 @@ class Client:
     @classmethod
     def start(cls, data_json_path: str, save_json_path: str):
         """Mainloop, Функция запуска программы, управления меню"""
+        menu_options = ('ДОБАВЛЕНИЕ книги', 'УДАЛЕНИЕ книги', 'ПОИСК книги', 'Отображение ВСЕХ книг',
+                        'Стандартное изменение СТАТУСа книги', 'ВВЕСТИ нестандартный СТАТУС книги',
+                        'СМЕНИТЬ библиотеку', 'СОЗДАТЬ библиотеку', 'УДАЛИТЬ библиотеку', 'ЗАВЕРШИТЬ работу',
+                        'Убери это, я - Программист (Остановить mainloop, посмотреть инкапсуляцию)')
         print('[INFO] Система управления библиотекой запущена')
         libraries_json = JsonConverter.open_json(data_json_path)
         if libraries_json:
@@ -413,18 +426,9 @@ class Client:
         while work:
             print(f'{'МЕНЮ':=^84}\n'
                   f'[INFO] Работа с библиотекой \'{current_library.name}\'')
-            print('Введите цифру - номер требуемого действия:\n'
-                  '1 - ДОБАВЛЕНИЕ книги\n'
-                  '2 - УДАЛЕНИЕ книги\n'
-                  '3 - ПОИСК книги\n'
-                  '4 - Отображение ВСЕХ книг\n'
-                  '5 - Стандартное изменение СТАТУСа книги\n'
-                  '6 - ВВЕСТИ нестандартный СТАТУС книги\n'
-                  '7 - СМЕНИТЬ библиотеку\n'
-                  '8 - СОЗДАТЬ библиотеку\n'
-                  '9 - УДАЛИТЬ библиотеку\n'
-                  '10 - ЗАВЕРШИТЬ работу\n'
-                  '11 - Убери это, я - Программист (Остановить mainloop, посмотреть инкапсуляцию)')
+            print('Введите цифру - номер требуемого действия:')
+            for option_number in range(len(menu_options)):
+                print(f'{option_number+1} - {menu_options[option_number]}')
             print(f'{'':=^84}')
             not_done = True
             while not_done:
@@ -434,11 +438,11 @@ class Client:
                     if isinstance(choice, float):
                         raise ValueError
                     choice = int(choice)
-                    if (choice < 1) or (choice > 11):
+                    if (choice < 1) or (choice > len(menu_options)):
                         raise ValueError
                     not_done = False
                 except ValueError:
-                    print('[WARNING] Нужно одно целое число от 1 до 11. Повторите попытку.')
+                    print(f'[WARNING] Нужно одно целое число от 1 до {len(menu_options)}. Повторите попытку.')
                     continue
             # noinspection PyUnboundLocalVariable
             match choice:
@@ -602,14 +606,17 @@ def create_logger(level: int) -> logging.Logger:
     # noinspection SpellCheckingInspection
     log_format = "%(asctime)s | %(levelname)s | %(funcName)s() | %(message)s"
     formatter = logging.Formatter(log_format)
+
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
     stream_handler.setFormatter(formatter)
     logger_.addHandler(stream_handler)
+
     file_handler = logging.FileHandler(filename="logs/main.log", mode="w")
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger_.addHandler(file_handler)
+
     return logger_
 
 
